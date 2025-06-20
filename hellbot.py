@@ -1,7 +1,9 @@
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
+from telegram.error import BadRequest
 from telegram import Update
 from telegram.ext import ContextTypes
 import requests
+import requests.exceptions 
 import os
 import random
 from enum import Enum
@@ -86,6 +88,9 @@ async def reply_with_mistral(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         await update.message.reply_text(reply[:400])
 
+    except requests.exceptions.Timeout:
+        reply = "Блядь, сервак тупит..."
+        await update.message.reply_text(reply)
     except Exception:
         if current_mode in [BotMode.ANGRY, BotMode.IDIOT]:
             response_type = "angry" if current_mode == BotMode.ANGRY else "idiot"
@@ -95,34 +100,45 @@ async def reply_with_mistral(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(insult)
         else:
             await update.message.reply_text("Ошибка, сука, попробуй позже")
-
-
 # Command handlers
 async def poslat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.chat.type == "private":
+    # 1. Group check
+    if update.message.chat.type not in ["group", "supergroup"]:
         await update.message.reply_text("Иди нахуй один! Эта команда для групп!")
         return
 
-    members = []
-    async for member in context.bot.get_chat_members(update.message.chat.id):
-        if not member.user.is_bot:
-            members.append(f"@{member.user.username}" if member.user.username else member.user.first_name)
-
-    if not members:
-        await update.message.reply_text("Тут даже послать нахуй некого...")
+    # 2. Targeted insults (/poslat @user)
+    if context.args:
+        target = " ".join(context.args)
+        if target.startswith("@"):
+            await update.message.reply_text(f"{target} - иди нахуй! 🖕")
+        else:
+            await update.message.reply_text(f"{target}, ты дебил? @username надо указывать! Сам иди нахуй! 🤬")
         return
 
-    if len(members) > 5:
-        reply = "ВСЕ ОТПРАВЛЕНЫ НАХУЙ! 💥"
-    else:
-        reply = f"{', '.join(members)} - отправлены нахуй! 🖕"
+    # 3. Try full group insult
+    try:
+        members = []
+        async for member in context.bot.get_chat_members(update.message.chat.id):
+            if not member.user.is_bot:
+                name = f"@{member.user.username}" if member.user.username else member.user.first_name
+                members.append(name)
 
-    await update.message.reply_text(reply)
+        if members:
+            response = "ВСЕ ОТПРАВЛЕНЫ НАХУЙ! 💥" if len(members) > 5 else f"{', '.join(members)} - отправлены нахуй! 🖕"
+            await update.message.reply_text(response)
+            return
 
+    except (BadRequest, AttributeError):
+        pass  # Silent fallthrough to basic version
+
+    # 4. Basic insult when no admin rights
+    offenders = ["@пидор", "@лох", "всех вас", update.effective_user.first_name]
+    await update.message.reply_text(f"{random.choice(offenders)} - нахуй! 🚀")
 
 async def random_poslat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     targets = ["@дурак", "@пидор", "@лох", "все вы"]
-    await update.message.reply_text(f"{random.choice(targets)} -  нахуй отсюда, каналья! 🖕")
+    await update.message.reply_text(f"{random.choice(targets)} - нахуй отсюда, каналья! 🖕")
 
 
 async def poslat_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -150,5 +166,5 @@ app.add_handler(CommandHandler("mode", change_mode))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_with_mistral))
 
 if __name__ == "__main__":
-    print("🤖 АГРЕССИВНЫЙ ХЕЛЛБОТ ЗАПУЩЕН! Ctrl+C для остановки")
+    print("🤖 АГРЕССИВНЫЙ ХЕЛЛБОТ ЗАШЕЛ В ХАТУ!")
     app.run_polling()
