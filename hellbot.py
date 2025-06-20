@@ -66,7 +66,7 @@ async def reply_with_mistral(update: Update, context: ContextTypes.DEFAULT_TYPE)
         payload = {
             "inputs": prompt_template.format(text=update.message.text),
             "parameters": {
-                "max_new_tokens": 100,
+                "max_new_tokens": 200,
                 "temperature": 0.9 if current_mode == BotMode.ANGRY else 0.7,
                 "repetition_penalty": 1.5 if current_mode == BotMode.ANGRY else 1.2
             }
