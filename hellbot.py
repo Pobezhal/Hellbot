@@ -167,4 +167,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_with_mistr
 
 if __name__ == "__main__":
     print("🤖 АГРЕССИВНЫЙ ХЕЛЛБОТ ЗАШЕЛ В ХАТУ!")
-    app.run_polling()
+    app.run_polling(
+        close_loop=False,  # Prevents automatic shutdown
+        stop_signals=[]    # Ignores SIGTERM from Railway
+    )
