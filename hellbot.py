@@ -8,7 +8,7 @@ from enum import Enum
 #from dotenv import load_dotenv
 
 # Load tokens
-load_dotenv()
+#load_dotenv()
 
 
 # Bot modes
