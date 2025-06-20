@@ -5,7 +5,7 @@ import requests
 import os
 import random
 from enum import Enum
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 # Load tokens
 load_dotenv()
